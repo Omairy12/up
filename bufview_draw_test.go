@@ -15,16 +15,24 @@ func Test_BufView_DrawTo(t *testing.T) {
 		want    TestScreen
 	}{
 		{
-			comment: "long line",
-			v:       newBufView(`1234567890xyz`),
+			comment: "long line trimmed on the right",
+			v:       newBufView(0, 0, `1234567890xyz`),
 			want: TestScreen{
 				Raw("123456789"), Raw("»"), Endline{0},
 				Rows{W: 10, H: 9},
 			},
 		},
 		{
+			comment: "long line trimmed on left & right",
+			v:       newBufView(1, 0, `1234567890xyz`),
+			want: TestScreen{
+				Raw("«"), Raw("34567890"), Raw("»"), Endline{0},
+				Rows{W: 10, H: 9},
+			},
+		},
+		{
 			comment: "Chinese characters - issue #51",
-			v: newBufView(`吃饭
+			v: newBufView(0, 0, `吃饭
 喝茶
 睡觉`),
 			want: TestScreen{
@@ -67,8 +75,8 @@ func Test_BufView_DrawTo(t *testing.T) {
 	}
 }
 
-func newBufView(text string) BufView {
-	v := BufView{Buf: NewBuf(1000)}
+func newBufView(x, y int, text string) BufView {
+	v := BufView{X: x, Y: y, Buf: NewBuf(1000)}
 	v.Buf.bytes = []byte(text)
 	v.Buf.n = len(text)
 	return v
