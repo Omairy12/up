@@ -491,24 +491,64 @@ func (v *BufView) DrawTo(region Region) {
 	}
 
 	lclip := false
-	drawch := func(x, y int, ch rune) {
-		if x <= v.X && v.X != 0 {
-			x, ch = 0, '«'
-			lclip = true
-		} else {
-			x -= v.X
+	drawch := func(x, y int, ch rune) (w int) {
+		w = max(runewidth.RuneWidth(ch), 1)
+		x -= v.X
+		if x < 0 {
+			return
 		}
-		// FIXME: properly handle runes of runewidth >= 2
-		if x >= region.W {
-			x, ch = region.W-1, '»'
+		if x+w > region.W {
+			return
 		}
 		region.SetContent(x, y, ch, nil, tcell.StyleDefault)
+		return
+
+		// if x <= v.X && v.X != 0 {
+		// 	x, ch = 0, '«'
+		// 	lclip = true
+		// } else {
+		// 	x -= v.X
+		// }
+		// // FIXME: properly handle runes of runewidth >= 2
+		// if x >= region.W {
+		// 	x, ch = region.W-1, '»'
+		// }
+		// region.SetContent(x, y, ch, nil, tcell.StyleDefault)
 	}
 	drawFiller := func(x, y int, filler rune, n int) {
 		for ; n > 0 && x < region.W; n-- {
 			drawch(x, y, filler)
 			x++
 		}
+	}
+	drawLClip := func(x, y int, w int) {
+		if v.X == 0 {
+			return
+		}
+		x -= v.X
+		switch {
+		case lclip && x+w<=0:
+			return
+		case !lclip && x+w<=0:
+			x, w = 0, 1
+			fallthrough
+		case lclip && x==0:
+			fallthrough
+		case x<0 && x+w>0:
+			lclip = true
+			drawFiller(0, y, '«', x+w)
+			// for i:=0; i<x+w; i++ {
+			// 	drawch(i, y, '«')
+			// }
+		}
+	}
+	drawRClip := func(x, y int, w, lastw int) {
+		// switch {
+		// case x==region.W:
+		// 	drawFiller(x-lastw, y, '»', lastw)
+		// case x<region.W && x+w > region.W:
+		// 	drawFiller(x, y, '»', region.W-x)
+		// }
 	}
 	endline := func(x, y int) {
 		x = max(0, x-v.X)
@@ -522,6 +562,7 @@ func (v *BufView) DrawTo(region Region) {
 	}
 
 	x, y := 0, 0
+	lastw := 1
 	// TODO: handle runes properly, including their visual width (mattn/go-runewidth)
 	for {
 		ch, _, err := r.ReadRune()
@@ -534,21 +575,28 @@ func (v *BufView) DrawTo(region Region) {
 		case '\n':
 			endline(x, y)
 			x, y = 0, y+1
+			lastw = 1
 			continue
 		case '\t':
 			const tabwidth = 8
 			drawch(x, y, ' ')
+			drawLClip(x, y, 1)
+			drawRClip(x, y, 1, lastw)
 			fill := tabwidth - 1 - x%tabwidth
 			x++
 			drawFiller(x, y, ' ', fill)
 			x += fill
+			lastw = 1
 		default:
-			drawch(x, y, ch)
-			w := runewidth.RuneWidth(ch)
-			if x <= v.X && v.X != 0 {
-				drawFiller(x+1, y, '«', w-1)
-			}
+			w := drawch(x, y, ch)
+			drawLClip(x, y, w)
+			drawRClip(x, y, w, lastw)
+			// w := runewidth.RuneWidth(ch)
+			// if x <= v.X && v.X != 0 {
+			// 	drawFiller(x+1, y, '«', w-1)
+			// }
 			x += w
+			lastw = w
 		}
 	}
 	for ; y < region.H; y++ {
