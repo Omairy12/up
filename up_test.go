@@ -155,10 +155,10 @@ func Test_Editor_unix_word_rubout(t *testing.T) {
 		{
 			comment: "unix-word-rubout tab as space char (although is it a realistic case in the context of a command line instruction?)",
 			e: Editor{
-				value: []rune(`a b		c`),
+				value:  []rune(`a b		c`),
 				cursor: 5,
 			},
-			wantValue: []rune(`a c`),
+			wantValue:     []rune(`a c`),
 			wantKillspace: []rune(`b		`),
 		},
 	}
