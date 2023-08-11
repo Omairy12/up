@@ -516,7 +516,7 @@ func (v *BufView) DrawTo(region Region) {
 		// region.SetContent(x, y, ch, nil, tcell.StyleDefault)
 	}
 	drawFiller := func(x, y int, filler rune, n int) {
-		for ; n > 0 && x < region.W; n-- {
+		for ; n > 0 && x < v.X+region.W; n-- {
 			drawch(x, y, filler)
 			x++
 		}
@@ -525,30 +525,31 @@ func (v *BufView) DrawTo(region Region) {
 		if v.X == 0 {
 			return
 		}
-		x -= v.X
+		xv := x - v.X
 		switch {
-		case lclip && x+w<=0:
+		case lclip && xv+w <= 0:
 			return
-		case !lclip && x+w<=0:
-			x, w = 0, 1
+		case !lclip && xv+w <= 0:
+			xv, w = 0, 1
 			fallthrough
-		case lclip && x==0:
+		case lclip && xv == 0:
 			fallthrough
-		case x<0 && x+w>0:
+		case xv < 0 && xv+w > 0:
 			lclip = true
-			drawFiller(0, y, '«', x+w)
+			drawFiller(v.X, y, '«', xv+w)
 			// for i:=0; i<x+w; i++ {
 			// 	drawch(i, y, '«')
 			// }
 		}
 	}
 	drawRClip := func(x, y int, w, lastw int) {
-		// switch {
-		// case x==region.W:
-		// 	drawFiller(x-lastw, y, '»', lastw)
-		// case x<region.W && x+w > region.W:
-		// 	drawFiller(x, y, '»', region.W-x)
-		// }
+		xv := x - v.X
+		switch {
+		case xv == region.W:
+			drawFiller(x-lastw, y, '»', lastw)
+		case xv < region.W && xv+w > region.W:
+			drawFiller(x, y, '»', region.W-xv)
+		}
 	}
 	endline := func(x, y int) {
 		x = max(0, x-v.X)
