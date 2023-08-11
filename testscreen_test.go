@@ -20,15 +20,14 @@ type Raw string
 
 func (x Raw) render() string { return string(x) }
 
-type Wide struct {
-	r rune
-	w int
-}
+// Wide2 represents a two-column wide character.
+type Wide2 rune
 
-func (x Wide) render() string {
+func (x Wide2) render() string {
 	// for multi-width runes, tcell seems to render them as the contents of
-	// the first cell, followed by 'X' for each covered cell.
-	return string(x.r) + strings.Repeat("X", x.w-1)
+	// the first cell, followed by 'X' for each subsequent covered
+	// cell/column.
+	return string(x) + "X"
 }
 
 type Endline struct{ w int }
