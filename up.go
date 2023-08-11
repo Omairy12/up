@@ -504,6 +504,12 @@ func (v *BufView) DrawTo(region Region) {
 		}
 		region.SetContent(x, y, ch, nil, tcell.StyleDefault)
 	}
+	drawFiller := func(x, y int, filler rune, n int) {
+		for ; n > 0 && x < region.W; n-- {
+			drawch(x, y, filler)
+			x++
+		}
+	}
 	endline := func(x, y int) {
 		x = max(0, x-v.X)
 		if x == 0 && lclip {
@@ -532,18 +538,17 @@ func (v *BufView) DrawTo(region Region) {
 		case '\t':
 			const tabwidth = 8
 			drawch(x, y, ' ')
-			for x%tabwidth < (tabwidth - 1) {
-				x++
-				if x >= region.W {
-					break
-				}
-				drawch(x, y, ' ')
-			}
-			// FIXME: is below line correct?
+			fill := tabwidth - 1 - x%tabwidth
 			x++
+			drawFiller(x, y, ' ', fill)
+			x += fill
 		default:
 			drawch(x, y, ch)
-			x += runewidth.RuneWidth(ch)
+			w := runewidth.RuneWidth(ch)
+			if x <= v.X && v.X != 0 {
+				drawFiller(x+1, y, '«', w-1)
+			}
+			x += w
 		}
 	}
 	for ; y < region.H; y++ {

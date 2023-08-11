@@ -71,12 +71,14 @@ func Test_BufView_DrawTo(t *testing.T) {
 			v: newBufView(0, 0, ""+
 				"\tA\n"+
 				"1\tB\n"+
-				"1234567\tC"),
+				"1234567\tC\n"+
+				"喝\tD"),
 			want: TestScreen{
 				Raw("        A"), Endline{1},
 				Raw("1       B"), Endline{1},
 				Raw("1234567 C"), Endline{1},
-				Rows{W: 10, H: 7},
+				Wide{'喝', 2}, Raw("      D"), Endline{1},
+				Rows{W: 10, H: 6},
 			},
 		},
 		{
