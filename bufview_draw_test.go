@@ -66,6 +66,32 @@ func Test_BufView_DrawTo(t *testing.T) {
 				Rows{W: 10, H: 6},
 			},
 		},
+		{
+			comment: "single tabulations",
+			v: newBufView(0, 0, ""+
+				"\tA\n"+
+				"1\tB\n"+
+				"1234567\tC"),
+			want: TestScreen{
+				Raw("        A"), Endline{1},
+				Raw("1       B"), Endline{1},
+				Raw("1234567 C"), Endline{1},
+				Rows{W: 10, H: 7},
+			},
+		},
+		{
+			comment: "left-trimmed single tabulations",
+			v: newBufView(3, 0, ""+
+				"\tA\n"+
+				"1\tB\n"+
+				"1234567\tC"),
+			want: TestScreen{
+				Raw("«"), Raw("    A"), Endline{4},
+				Raw("«"), Raw("    B"), Endline{4},
+				Raw("«"), Raw("567 C"), Endline{4},
+				Rows{W: 10, H: 7},
+			},
+		},
 	}
 
 	scr := tcell.NewSimulationScreen("")
