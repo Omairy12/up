@@ -28,6 +28,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"slices"
 	"sync"
 	"unicode"
 
@@ -430,10 +431,7 @@ func (e *Editor) HandleKey(ev *tcell.EventKey) bool {
 }
 
 func (e *Editor) insert(ch ...rune) {
-	// Based on https://github.com/golang/go/wiki/SliceTricks#insert
-	e.value = append(e.value, ch...)                     // = PREFIX + SUFFIX + (filler)
-	copy(e.value[e.cursor+len(ch):], e.value[e.cursor:]) // = PREFIX + (filler) + SUFFIX
-	copy(e.value[e.cursor:], ch)                         // = PREFIX + ch + SUFFIX
+	e.value = slices.Insert(e.value, e.cursor, ch...)
 	e.cursor += len(ch)
 }
 
@@ -442,7 +440,7 @@ func (e *Editor) delete(dx int) {
 	if pos < 0 || pos >= len(e.value) {
 		return
 	}
-	e.value = append(e.value[:pos], e.value[pos+1:]...)
+	e.value = slices.Delete(e.value, pos, pos+1)
 	e.cursor = pos
 }
 
@@ -465,7 +463,7 @@ func (e *Editor) unixWordRubout() {
 		pos--
 	}
 	e.killspace = append(e.killspace[:0], e.value[pos:e.cursor]...)
-	e.value = append(e.value[:pos], e.value[e.cursor:]...)
+	e.value = slices.Delete(e.value, pos, e.cursor)
 	e.cursor = pos
 }
 
