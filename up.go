@@ -509,10 +509,7 @@ func (v *BufView) DrawTo(region Region) {
 		region.SetCell(x, y, tcell.StyleDefault, ch)
 	}
 	endline := func(x, y int) {
-		x -= v.X
-		if x < 0 {
-			x = 0
-		}
+		x = max(0, x-v.X)
 		if x == 0 && lclip {
 			x++
 		}
@@ -581,10 +578,7 @@ func (v *BufView) HandleKey(ev *tcell.EventKey, scrollY int) bool {
 	//
 	case altKey(tcell.KeyLeft),
 		ctrlKey(tcell.KeyLeft):
-		v.X -= scrollX
-		if v.X < 0 {
-			v.X = 0
-		}
+		v.X = max(0, v.X-scrollX)
 	case altKey(tcell.KeyRight),
 		ctrlKey(tcell.KeyRight):
 		v.X += scrollX
@@ -600,12 +594,7 @@ func (v *BufView) HandleKey(ev *tcell.EventKey, scrollY int) bool {
 
 func (v *BufView) normalizeY() {
 	nlines := count(v.Buf.NewReader(false), '\n') + 1
-	if v.Y >= nlines {
-		v.Y = nlines - 1
-	}
-	if v.Y < 0 {
-		v.Y = 0
-	}
+	v.Y = max(0, min(nlines-1, v.Y))
 }
 
 func count(r io.Reader, b byte) (n int) {
