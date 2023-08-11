@@ -67,6 +67,27 @@ func Test_BufView_DrawTo(t *testing.T) {
 			},
 		},
 		{
+			comment: "Chinese characters trimmed half-way on the right",
+			v: newBufView(0, 0, ""+
+				"1234567890喝茶bc\n"+
+				"123456789喝茶abc\n"+
+				"12345678喝茶zabc\n"+
+				"1234567喝茶yzabc\n"+
+				"123456喝茶xyzabc\n"+
+				"12345喝茶0xyzabc\n"+
+				"1234喝茶90xyzabc\n"),
+			want: TestScreen{
+				Raw("123456789"), Raw("»"), Endline{0},
+				Raw("123456789"), Raw("»"), Endline{0},
+				Raw("12345678"), Raw("»»"), Endline{0},
+				Raw("1234567"), Wide{'喝', 2}, Raw("»"), Endline{0},
+				Raw("123456"), Wide{'喝', 2}, Raw("»»"), Endline{0},
+				Raw("12345"), Wide{'喝', 2}, Wide{'茶', 2}, Raw("»"), Endline{0},
+				Raw("1234"), Wide{'喝', 2}, Wide{'茶', 2}, Raw("9»"), Endline{0},
+				Rows{W: 10, H: 3},
+			},
+		},
+		{
 			comment: "single tabulations",
 			v: newBufView(0, 0, ""+
 				"\tA\n"+
