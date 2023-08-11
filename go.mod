@@ -1,6 +1,6 @@
 module github.com/akavel/up
 
-go 1.18
+go 1.19
 
 require (
 	github.com/gdamore/tcell v1.4.0
