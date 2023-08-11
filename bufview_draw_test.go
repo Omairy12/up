@@ -11,19 +11,19 @@ func Test_BufView_DrawTo(t *testing.T) {
 	tests := []struct {
 		comment string
 		v       BufView
-		// want TestScreen
+		want    TestScreen
 	}{
 		{
 			comment: "Chinese characters - issue #51",
 			v: newBufView(`吃饭
 喝茶
 睡觉`),
-			// want: TestScreen{
-			// 	Wide{'吃', 2}, Wide{'饭', 2}, Empty{8},
-			// 	Wide{'喝', 2}, Wide{'茶', 2}, Empty{8},
-			// 	Wide{'睡', 2}, Wide{'觉', 2}, Empty{8},
-			// 	Rows{W:10, H:7},
-			// },
+			want: TestScreen{
+				Wide{'吃', 2}, Wide{'饭', 2}, Empty{8},
+				Wide{'喝', 2}, Wide{'茶', 2}, Empty{8},
+				Wide{'睡', 2}, Wide{'觉', 2}, Empty{8},
+				Rows{W: 10, H: 7},
+			},
 		},
 	}
 
