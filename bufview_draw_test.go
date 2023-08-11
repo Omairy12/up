@@ -28,9 +28,9 @@ func Test_BufView_DrawTo(t *testing.T) {
 喝茶
 睡觉`),
 			want: TestScreen{
-				Wide{'吃', 2}, Wide{'饭', 2}, Endline{8},
-				Wide{'喝', 2}, Wide{'茶', 2}, Endline{8},
-				Wide{'睡', 2}, Wide{'觉', 2}, Endline{8},
+				Wide{'吃', 2}, Wide{'饭', 2}, Endline{6},
+				Wide{'喝', 2}, Wide{'茶', 2}, Endline{6},
+				Wide{'睡', 2}, Wide{'觉', 2}, Endline{6},
 				Rows{W: 10, H: 7},
 			},
 		},
@@ -46,10 +46,9 @@ func Test_BufView_DrawTo(t *testing.T) {
 	region := Region{
 		W: 10,
 		H: 10,
-		SetCell: func(x, y int, style tcell.Style, ch rune) {
-			scr.SetCell(x, y, style, ch)
+		SetContent: func(x, y int, mainc rune, combc []rune, style tcell.Style) {
+			scr.SetContent(x, y, mainc, combc, style)
 		},
-		// SetContent: func(dx, dy int, mainc rune, combc []rune
 	}
 
 	for _, tt := range tests {

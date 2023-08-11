@@ -35,6 +35,7 @@ import (
 	"github.com/gdamore/tcell"
 	"github.com/gdamore/tcell/terminfo"
 	"github.com/mattn/go-isatty"
+	"github.com/mattn/go-runewidth"
 	"github.com/spf13/pflag"
 )
 
@@ -242,7 +243,7 @@ func main() {
 		commandEditor.DrawTo(TuiRegion(tui, 1, 0, w-1, 1), style,
 			func(x, y int) { tui.ShowCursor(x+1, 0) })
 		commandOutput.DrawTo(TuiRegion(tui, 0, 1, w, h-1))
-		drawText(TuiRegion(tui, 0, h-1, w, 1), whiteOnBlue, message)
+		drawText(TuiRegion(tui, 0, h-1, w, 1), 0, whiteOnBlue, []rune(message))
 		tui.Show()
 
 		// Handle UI events
@@ -364,22 +365,18 @@ func (e *Editor) String() string { return string(e.value) }
 
 func (e *Editor) DrawTo(region Region, style tcell.Style, setcursor func(x, y int)) {
 	// Draw prompt & the edited value - use white letters on blue background
-	for i, ch := range e.prompt {
-		region.SetCell(i, 0, style, ch)
-	}
-	for i, ch := range e.value {
-		region.SetCell(len(e.prompt)+i, 0, style, ch)
-	}
+	wprompt := drawText(region, 0, style, e.prompt)
+	wvalue := drawText(region, wprompt, style, e.value)
 
 	// Clear remains of last value if needed
-	for i := len(e.value); i < e.lastw; i++ {
-		region.SetCell(len(e.prompt)+i, 0, tcell.StyleDefault, ' ')
+	for i := wvalue; i < e.lastw; i++ {
+		region.SetContent(wprompt+i, 0, ' ', nil, tcell.StyleDefault)
 	}
-	e.lastw = len(e.value)
+	e.lastw = wvalue
 
 	// Show cursor if requested
 	if setcursor != nil {
-		setcursor(len(e.prompt)+e.cursor, 0)
+		setcursor(wprompt+runewidth.StringWidth(string(e.value[:e.cursor])), 0)
 	}
 }
 
@@ -501,10 +498,11 @@ func (v *BufView) DrawTo(region Region) {
 		} else {
 			x -= v.X
 		}
+		// FIXME: properly handle runes of runewidth >= 2
 		if x >= region.W {
 			x, ch = region.W-1, '»'
 		}
-		region.SetCell(x, y, tcell.StyleDefault, ch)
+		region.SetContent(x, y, ch, nil, tcell.StyleDefault)
 	}
 	endline := func(x, y int) {
 		x = max(0, x-v.X)
@@ -513,7 +511,7 @@ func (v *BufView) DrawTo(region Region) {
 		}
 		lclip = false
 		for ; x < region.W; x++ {
-			region.SetCell(x, y, tcell.StyleDefault, ' ')
+			region.SetContent(x, y, ' ', nil, tcell.StyleDefault)
 		}
 	}
 
@@ -541,10 +539,12 @@ func (v *BufView) DrawTo(region Region) {
 				}
 				drawch(x, y, ' ')
 			}
+			// FIXME: is below line correct?
+			x++
 		default:
 			drawch(x, y, ch)
+			x += runewidth.RuneWidth(ch)
 		}
-		x++
 	}
 	for ; y < region.H; y++ {
 		endline(x, y)
@@ -698,7 +698,7 @@ func (b *Buf) DrawStatus(region Region, style tcell.Style) {
 	}
 	b.mu.Unlock()
 
-	region.SetCell(0, 0, style, status)
+	region.SetContent(0, 0, status, nil, style)
 }
 
 func (b *Buf) NewReader(blocking bool) io.Reader {
@@ -848,19 +848,19 @@ fallback_print:
 }
 
 type Region struct {
-	W, H    int
-	SetCell func(x, y int, style tcell.Style, ch rune)
+	W, H       int
+	SetContent func(x, y int, mainc rune, combc []rune, style tcell.Style)
 }
 
 func TuiRegion(tui tcell.Screen, x, y, w, h int) Region {
 	return Region{
 		W: w, H: h,
-		SetCell: func(dx, dy int, style tcell.Style, ch rune) {
+		SetContent: func(dx, dy int, mainc rune, combc []rune, style tcell.Style) {
 			if dx >= 0 && dx < w && dy >= 0 && dy < h {
 				if *noColors {
 					style = tcell.StyleDefault
 				}
-				tui.SetCell(x+dx, y+dy, style, ch)
+				tui.SetContent(x+dx, y+dy, mainc, combc, style)
 			}
 		},
 	}
@@ -871,8 +871,11 @@ var (
 	whiteOnDBlue = tcell.StyleDefault.Foreground(tcell.ColorWhite).Background(tcell.ColorNavy)
 )
 
-func drawText(region Region, style tcell.Style, text string) {
-	for x, ch := range text {
-		region.SetCell(x, 0, style, ch)
+func drawText(region Region, x int, style tcell.Style, text []rune) int {
+	w := 0
+	for _, ch := range text {
+		region.SetContent(x+w, 0, ch, nil, style)
+		w += runewidth.RuneWidth(ch)
 	}
+	return w
 }
