@@ -23,11 +23,13 @@ func Test_BufView_DrawTo(t *testing.T) {
 			},
 		},
 		{
-			comment: "long line trimmed on left & right",
-			v:       newBufView(1, 0, `1234567890xyz`),
+			comment: "long lines trimmed on left & right",
+			v: newBufView(2, 0, "1234567890xyz\n"+
+				"吃34567890xyz"),
 			want: TestScreen{
-				Raw("«"), Raw("34567890"), Raw("»"), Endline{0},
-				Rows{W: 10, H: 9},
+				Raw("«"), Raw("4567890x"), Raw("»"), Endline{0},
+				Raw("«"), Raw("4567890x"), Raw("»"), Endline{0},
+				Rows{W: 10, H: 8},
 			},
 		},
 		{
@@ -40,6 +42,15 @@ func Test_BufView_DrawTo(t *testing.T) {
 				Wide{'喝', 2}, Wide{'茶', 2}, Endline{6},
 				Wide{'睡', 2}, Wide{'觉', 2}, Endline{6},
 				Rows{W: 10, H: 7},
+			},
+		},
+		{
+			comment: "Chinese characters trimmed half-way on the left",
+			v: newBufView(1, 0, "吃34567890xyz\n"+
+				"喝茶567890xyz"),
+			want: TestScreen{
+				Raw("«"), Raw("茶567890"), Raw("»"), Endline{0},
+				Rows{W: 10, H: 8},
 			},
 		},
 	}
