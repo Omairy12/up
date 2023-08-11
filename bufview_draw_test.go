@@ -24,14 +24,19 @@ func Test_BufView_DrawTo(t *testing.T) {
 		},
 		{
 			comment: "long lines trimmed on left & right",
-			v: newBufView(2, 0, "1234567890xyz\n"+
+			v: newBufView(2, 0, ""+
+				"1234567890xyz\n"+
 				"吃34567890xyz\n"+
-				"喝茶567890xyz"),
+				"喝茶567890xyz\n"+
+				"1茶4567890xyz\n"+
+				"1喝茶67890xyz"),
 			want: TestScreen{
 				Raw("«"), Raw("4567890x"), Raw("»"), Endline{0},
 				Raw("«"), Raw("4567890x"), Raw("»"), Endline{0},
 				Raw("««"), Raw("567890x"), Raw("»"), Endline{0},
-				Rows{W: 10, H: 7},
+				Raw("«"), Raw("4567890x"), Raw("»"), Endline{0},
+				Raw("«"), Raw("茶67890x"), Raw("»"), Endline{0},
+				Rows{W: 10, H: 5},
 			},
 		},
 		{
@@ -48,11 +53,17 @@ func Test_BufView_DrawTo(t *testing.T) {
 		},
 		{
 			comment: "Chinese characters trimmed half-way on the left",
-			v: newBufView(1, 0, "吃34567890xyz\n"+
-				"喝茶567890xyz"),
+			v: newBufView(1, 0, ""+
+				"吃34567890xyz\n"+
+				"喝茶567890xyz\n"+
+				"1吃4567890xyz\n"+
+				"1喝茶67890xyz"),
 			want: TestScreen{
+				Raw("«"), Raw("34567890"), Raw("»"), Endline{0},
 				Raw("«"), Raw("茶567890"), Raw("»"), Endline{0},
-				Rows{W: 10, H: 8},
+				Raw("««"), Raw("4567890"), Raw("»"), Endline{0},
+				Raw("««"), Raw("茶67890"), Raw("»"), Endline{0},
+				Rows{W: 10, H: 6},
 			},
 		},
 	}
