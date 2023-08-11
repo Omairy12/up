@@ -502,18 +502,6 @@ func (v *BufView) DrawTo(region Region) {
 		}
 		region.SetContent(x, y, ch, nil, tcell.StyleDefault)
 		return
-
-		// if x <= v.X && v.X != 0 {
-		// 	x, ch = 0, '«'
-		// 	lclip = true
-		// } else {
-		// 	x -= v.X
-		// }
-		// // FIXME: properly handle runes of runewidth >= 2
-		// if x >= region.W {
-		// 	x, ch = region.W-1, '»'
-		// }
-		// region.SetContent(x, y, ch, nil, tcell.StyleDefault)
 	}
 	drawFiller := func(x, y int, filler rune, n int) {
 		for ; n > 0 && x < v.X+region.W; n-- {
@@ -537,9 +525,6 @@ func (v *BufView) DrawTo(region Region) {
 		case xv < 0 && xv+w > 0:
 			lclip = true
 			drawFiller(v.X, y, '«', xv+w)
-			// for i:=0; i<x+w; i++ {
-			// 	drawch(i, y, '«')
-			// }
 		}
 	}
 	drawRClip := func(x, y int, w, lastw int) {
@@ -581,21 +566,17 @@ func (v *BufView) DrawTo(region Region) {
 		case '\t':
 			const tabwidth = 8
 			drawch(x, y, ' ')
+			fill := tabwidth - 1 - x%tabwidth
+			drawFiller(x+1, y, ' ', fill)
+			lclip = false // HACK: ensure drawLClip overdraws drawFiller
 			drawLClip(x, y, 1)
 			drawRClip(x, y, 1, lastw)
-			fill := tabwidth - 1 - x%tabwidth
-			x++
-			drawFiller(x, y, ' ', fill)
-			x += fill
+			x += 1 + fill
 			lastw = 1
 		default:
 			w := drawch(x, y, ch)
 			drawLClip(x, y, w)
 			drawRClip(x, y, w, lastw)
-			// w := runewidth.RuneWidth(ch)
-			// if x <= v.X && v.X != 0 {
-			// 	drawFiller(x+1, y, '«', w-1)
-			// }
 			x += w
 			lastw = w
 		}
