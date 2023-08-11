@@ -6,6 +6,7 @@ toolchain go1.21.0
 
 require (
 	github.com/gdamore/tcell v1.4.0
+	github.com/kylelemons/godebug v1.1.0
 	github.com/mattn/go-isatty v0.0.19
 	github.com/spf13/pflag v1.0.3
 )

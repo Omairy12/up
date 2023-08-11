@@ -4,9 +4,21 @@ import "strings"
 
 type TestScreen []renderer
 
+func (ts TestScreen) String() string {
+	s := ""
+	for _, r := range ts {
+		s += r.render()
+	}
+	return s
+}
+
 type renderer interface {
 	render() string
 }
+
+type Raw string
+
+func (x Raw) render() string { return string(x) }
 
 type Wide struct {
 	r rune
@@ -18,6 +30,10 @@ func (x Wide) render() string {
 	// the first cell, followed by 'X' for each covered cell.
 	return string(x.r) + strings.Repeat("X", x.w-1)
 }
+
+type Endline struct{ w int }
+
+func (x Endline) render() string { return Empty{x.w}.render() + "\n" }
 
 type Empty struct{ w int }
 

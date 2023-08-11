@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/gdamore/tcell"
+	"github.com/kylelemons/godebug/diff"
 )
 
 func Test_BufView_DrawTo(t *testing.T) {
@@ -14,14 +15,22 @@ func Test_BufView_DrawTo(t *testing.T) {
 		want    TestScreen
 	}{
 		{
+			comment: "long line",
+			v:       newBufView(`1234567890xyz`),
+			want: TestScreen{
+				Raw("123456789"), Raw("»"), Endline{0},
+				Rows{W: 10, H: 9},
+			},
+		},
+		{
 			comment: "Chinese characters - issue #51",
 			v: newBufView(`吃饭
 喝茶
 睡觉`),
 			want: TestScreen{
-				Wide{'吃', 2}, Wide{'饭', 2}, Empty{8},
-				Wide{'喝', 2}, Wide{'茶', 2}, Empty{8},
-				Wide{'睡', 2}, Wide{'觉', 2}, Empty{8},
+				Wide{'吃', 2}, Wide{'饭', 2}, Endline{8},
+				Wide{'喝', 2}, Wide{'茶', 2}, Endline{8},
+				Wide{'睡', 2}, Wide{'觉', 2}, Endline{8},
 				Rows{W: 10, H: 7},
 			},
 		},
@@ -48,10 +57,14 @@ func Test_BufView_DrawTo(t *testing.T) {
 		scr.Clear()
 		tt.v.DrawTo(region)
 		scr.Sync()
+
 		haveCells, haveW, _ := scr.GetContents()
-		t.Errorf("%s", renderCells(haveCells, haveW))
-		t.Errorf("%q", renderCells(haveCells, haveW))
-		t.Errorf("...")
+		have := renderCells(haveCells, haveW)
+
+		want := tt.want.String()
+		if have != want {
+			t.Errorf("bad %q:\n%s", tt.comment, diff.Diff(have, want))
+		}
 	}
 }
 
@@ -72,14 +85,10 @@ func renderCells(cells []tcell.SimCell, w int) string {
 			row = row[:len(row)-1]
 		}
 		for _, c := range row {
-			// s = append(s, c.Bytes...)
 			s += string(c.Bytes)
 		}
 		s += "\n"
 	}
 	// FIXME: append any trailing cells' bytes as well
-	return strings.TrimRight(s, "\n")
+	return strings.TrimRight(s, "\n") + "\n"
 }
-
-// type TestScreen struct {
-// }
