@@ -1,4 +1,4 @@
-// Copyright 2018 The up AUTHORS
+// Copyright 2018-2023 The up AUTHORS
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -25,7 +25,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
@@ -139,7 +138,7 @@ func main() {
 	// Handle command-line flags
 	pflag.Parse()
 
-	log.SetOutput(ioutil.Discard)
+	log.SetOutput(io.Discard)
 	if *debugMode {
 		debug, err := os.Create("up.debug")
 		if err != nil {
@@ -836,7 +835,7 @@ try_file:
 fallback_tmp:
 	// TODO: test if the fallbacks etc. protections actually work
 	os.Stderr.WriteString(" - error: " + err.Error() + "\n")
-	f, err = ioutil.TempFile("", "up-*.sh")
+	f, err = os.CreateTemp("", "up-*.sh")
 	if err != nil {
 		goto fallback_print
 	}
