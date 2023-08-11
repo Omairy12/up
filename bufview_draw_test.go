@@ -25,11 +25,13 @@ func Test_BufView_DrawTo(t *testing.T) {
 		{
 			comment: "long lines trimmed on left & right",
 			v: newBufView(2, 0, "1234567890xyz\n"+
-				"吃34567890xyz"),
+				"吃34567890xyz\n"+
+				"喝茶567890xyz"),
 			want: TestScreen{
 				Raw("«"), Raw("4567890x"), Raw("»"), Endline{0},
 				Raw("«"), Raw("4567890x"), Raw("»"), Endline{0},
-				Rows{W: 10, H: 8},
+				Raw("««"), Raw("567890x"), Raw("»"), Endline{0},
+				Rows{W: 10, H: 7},
 			},
 		},
 		{
