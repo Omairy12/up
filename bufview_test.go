@@ -10,6 +10,10 @@ import (
 )
 
 func TestBufView_DrawTo(t *testing.T) {
+	type W2 = u.Wide2
+	type PadEOL = u.Endline
+	EOL := PadEOL{0}
+
 	tests := []struct {
 		note string
 		v    BufView
@@ -24,22 +28,74 @@ func TestBufView_DrawTo(t *testing.T) {
 		note: "long lines trimmed on left & right",
 		v: linesView(
 			"123456789_123",
-			"123456789.xyz").
+			"吃3456789_123",
+			"喝茶56789_123",
+			"1茶456789_123",
+			"1喝茶6789_123").
 			scrolled(2, 0),
 		want: u.Screen{
-			u.Raw("«456789_1»"), u.Endline{},
-			u.Raw("«456789.x»"), u.Endline{},
+			u.Raw("«456789_1»"), EOL,
+			u.Raw("«456789_1»"), EOL,
+			u.Raw("««56789_1»"), EOL,
+			u.Raw("«456789_1»"), EOL,
+			u.Raw("«"), W2('茶'), u.Raw("67890_1»"), EOL,
+		},
+	}, {
+		note: "issue #51 Chinese characters",
+		v: linesView(
+			"吃饭",
+			"喝茶",
+			"睡觉"),
+		want: u.Screen{
+			W2('吃'), W2('饭'), PadEOL{6},
+			W2('喝'), W2('茶'), PadEOL{6},
+			W2('睡'), W2('觉'), PadEOL{6},
+		},
+	}, {
+		note: "Chinese characters trimmed half-way on the left",
+		v: linesView(
+			"吃3456789_123",
+			"喝茶56789_123",
+			"1吃456789_123",
+			"1喝茶6789_123").
+			scrolled(1, 0),
+		want: u.Screen{
+			u.Raw("«3456789_»"), EOL,
+			u.Raw("«"), W2('茶'), u.Raw("56789_»"), EOL,
+			u.Raw("««"), u.Raw("456789_»"), EOL,
+			u.Raw("««"), W2('茶'), u.Raw("6789_»"), EOL,
+		},
+	}, {
+		note: "Chinese characters trimmed half-way on the right",
+		v: linesView(
+			"1234567890喝茶bc",
+			"123456789喝茶abc",
+			"12345678喝茶zabc",
+			"1234567喝茶yzabc",
+			"123456喝茶xyzabc",
+			"12345喝茶0xyzabc",
+			"1234喝茶90xyzabc"),
+		want: u.Screen{
+			u.Raw("123456789»"), EOL,
+			u.Raw("123456789»"), EOL,
+			u.Raw("12345678»»"), EOL,
+			u.Raw("1234567"), W2('喝'), u.Raw("»"), EOL,
+			u.Raw("123456"), W2('喝'), u.Raw("»»"), EOL,
+			u.Raw("12345"), W2('喝'), W2('茶'), u.Raw("»"), EOL,
+			u.Raw("1234"), W2('喝'), W2('茶'), u.Raw("9»"), EOL,
 		},
 	}, {
 		note: "single tabulations",
 		v: linesView(
 			"\tA",
 			"1\tB",
-			"1234567\tC"),
+			"1234567\tC",
+			"喝\tD"),
 		want: u.Screen{
-			u.Raw("        A"), u.Endline{1},
-			u.Raw("1       B"), u.Endline{1},
-			u.Raw("1234567 C"), u.Endline{1},
+			u.Raw("        A"), PadEOL{1},
+			u.Raw("1       B"), PadEOL{1},
+			u.Raw("1234567 C"), PadEOL{1},
+			W2('喝'), u.Raw("      D"), PadEOL{1},
 		},
 	}, {
 		note: "left-trimmed single tabulations",
@@ -49,9 +105,9 @@ func TestBufView_DrawTo(t *testing.T) {
 			"1234567\tC").
 			scrolled(3, 0),
 		want: u.Screen{
-			u.Raw("«    A"), u.Endline{4},
-			u.Raw("«    B"), u.Endline{4},
-			u.Raw("«567 C"), u.Endline{4},
+			u.Raw("«    A"), PadEOL{4},
+			u.Raw("«    B"), PadEOL{4},
+			u.Raw("«567 C"), PadEOL{4},
 		},
 	}}
 
