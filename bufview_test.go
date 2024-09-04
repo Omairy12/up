@@ -30,6 +30,29 @@ func TestBufView_DrawTo(t *testing.T) {
 			u.Raw("«4567890x»"), u.Endline{},
 			u.Raw("«4567890x»"), u.Endline{},
 		},
+	}, {
+		note: "single tabulations",
+		v: linesView(
+			"\tA",
+			"1\tB",
+			"1234567\tC"),
+		want: u.Screen{
+			u.Raw("        A"), u.Endline{1},
+			u.Raw("1       B"), u.Endline{1},
+			u.Raw("1234567 C"), u.Endline{1},
+		},
+	}, {
+		note: "left-trimmed single tabulations",
+		v: linesView(
+			"\tA",
+			"1\tB",
+			"1234567\tC").
+			scrolled(3, 0),
+		want: u.Screen{
+			u.Raw("«    A"), u.Endline{4},
+			u.Raw("«    B"), u.Endline{4},
+			u.Raw("«567 C"), u.Endline{4},
+		},
 	}}
 
 	// Initialize simulated tcell.Screen
