@@ -16,19 +16,19 @@ func TestBufView_DrawTo(t *testing.T) {
 		want u.Screen
 	}{{
 		note: "long line trimmed on the right",
-		v:    newView(`1234567890xyz`),
+		v:    newView(`123456789_123`),
 		want: u.Screen{
 			u.Raw("123456789»"), u.Endline{},
 		},
 	}, {
 		note: "long lines trimmed on left & right",
 		v: linesView(
-			"1234567890xyz",
-			"1234567890xyz").
+			"123456789_123",
+			"123456789.xyz").
 			scrolled(2, 0),
 		want: u.Screen{
-			u.Raw("«4567890x»"), u.Endline{},
-			u.Raw("«4567890x»"), u.Endline{},
+			u.Raw("«456789_1»"), u.Endline{},
+			u.Raw("«456789.x»"), u.Endline{},
 		},
 	}, {
 		note: "single tabulations",
