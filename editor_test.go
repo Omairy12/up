@@ -3,173 +3,175 @@ package main
 import "testing"
 
 func Test_Editor_insert(t *testing.T) {
+	type runes = []rune
 	tests := []struct {
 		comment   string
 		e         Editor
 		insert    []rune
-		wantValue []rune
+		wantValue string
 	}{
 		{
 			comment: "prepend ASCII char",
 			e: Editor{
-				value:  []rune(`abc`),
+				value:  runes(`abc`),
 				cursor: 0,
 			},
-			insert:    []rune{'X'},
-			wantValue: []rune(`Xabc`),
+			insert:    runes{'X'},
+			wantValue: `Xabc`,
 		},
 		{
 			comment: "prepend UTF char",
 			e: Editor{
-				value:  []rune(`abc`),
+				value:  runes(`abc`),
 				cursor: 0,
 			},
-			insert:    []rune{'☃'},
-			wantValue: []rune(`☃abc`),
+			insert:    runes{'☃'},
+			wantValue: `☃abc`,
 		},
 		{
 			comment: "insert ASCII char",
 			e: Editor{
-				value:  []rune(`abc`),
+				value:  runes(`abc`),
 				cursor: 1,
 			},
-			insert:    []rune{'X'},
-			wantValue: []rune(`aXbc`),
+			insert:    runes{'X'},
+			wantValue: `aXbc`,
 		},
 		{
 			comment: "insert UTF char",
 			e: Editor{
-				value:  []rune(`abc`),
+				value:  runes(`abc`),
 				cursor: 1,
 			},
-			insert:    []rune{'☃'},
-			wantValue: []rune(`a☃bc`),
+			insert:    runes{'☃'},
+			wantValue: `a☃bc`,
 		},
 		{
 			comment: "append ASCII char",
 			e: Editor{
-				value:  []rune(`abc`),
+				value:  runes(`abc`),
 				cursor: 3,
 			},
-			insert:    []rune{'X'},
-			wantValue: []rune(`abcX`),
+			insert:    runes{'X'},
+			wantValue: `abcX`,
 		},
 		{
 			comment: "append UTF char",
 			e: Editor{
-				value:  []rune(`abc`),
+				value:  runes(`abc`),
 				cursor: 3,
 			},
-			insert:    []rune{'☃'},
-			wantValue: []rune(`abc☃`),
+			insert:    runes{'☃'},
+			wantValue: `abc☃`,
 		},
 		{
 			comment: "insert 2 ASCII chars",
 			e: Editor{
-				value:  []rune(`abc`),
+				value:  runes(`abc`),
 				cursor: 1,
 			},
-			insert:    []rune{'X', 'Y'},
-			wantValue: []rune(`aXYbc`),
+			insert:    runes{'X', 'Y'},
+			wantValue: `aXYbc`,
 		},
 	}
 
 	for _, tt := range tests {
 		tt.e.insert(tt.insert...)
-		if string(tt.e.value) != string(tt.wantValue) {
-			t.Errorf("%q: bad value\nwant: %q\nhave: %q", tt.comment, tt.wantValue, tt.e.value)
+		if string(tt.e.value) != tt.wantValue {
+			t.Errorf("%q: bad value\nwant: %q\nhave: %q", tt.comment, runes(tt.wantValue), tt.e.value)
 		}
 	}
 }
 
 func Test_Editor_unix_word_rubout(t *testing.T) {
+	type runes = []rune
 	tests := []struct {
 		comment       string
 		e             Editor
-		wantValue     []rune
-		wantKillspace []rune
+		wantValue     string
+		wantKillspace string
 	}{
 		{
-			comment: "unix-word-rubout at beginning of line",
+			comment: "at beginning of line",
 			e: Editor{
-				value:  []rune(`abc`),
+				value:  runes(`abc`),
 				cursor: 0,
 			},
-			wantValue:     []rune(`abc`),
-			wantKillspace: []rune(``),
+			wantValue:     `abc`,
+			wantKillspace: ``,
 		},
 		{
-			comment: "unix-word-rubout at soft beginning of line",
+			comment: "at soft beginning of line",
 			e: Editor{
-				value:  []rune(` abc`),
+				value:  runes(` abc`),
 				cursor: 1,
 			},
-			wantValue:     []rune(`abc`),
-			wantKillspace: []rune(` `),
+			wantValue:     `abc`,
+			wantKillspace: ` `,
 		},
 		{
-			comment: "unix-word-rubout until soft beginning of line",
+			comment: "until soft beginning of line",
 			e: Editor{
-				value:  []rune(` abc`),
+				value:  runes(` abc`),
 				cursor: 2,
 			},
-			wantValue:     []rune(` bc`),
-			wantKillspace: []rune(`a`),
+			wantValue:     ` bc`,
+			wantKillspace: `a`,
 		},
 		{
-			comment: "unix-word-rubout until beginning of line",
+			comment: "until beginning of line",
 			e: Editor{
-				value:  []rune(`abc`),
+				value:  runes(`abc`),
 				cursor: 2,
 			},
-			wantValue:     []rune(`c`),
-			wantKillspace: []rune(`ab`),
+			wantValue:     `c`,
+			wantKillspace: `ab`,
 		},
 		{
-			comment: "unix-word-rubout in middle of line",
+			comment: "in middle of line",
 			e: Editor{
-				value:  []rune(`lorem ipsum dolor`),
+				value:  runes(`lorem ipsum dolor`),
 				cursor: 11,
 			},
-			wantValue:     []rune(`lorem  dolor`),
-			wantKillspace: []rune(`ipsum`),
+			wantValue:     `lorem  dolor`,
+			wantKillspace: `ipsum`,
 		},
 		{
-			comment: "unix-word-rubout cursor at beginning of word",
+			comment: "cursor at beginning of word",
 			e: Editor{
-				value:  []rune(`lorem ipsum dolor`),
+				value:  runes(`lorem ipsum dolor`),
 				cursor: 12,
 			},
-			wantValue:     []rune(`lorem dolor`),
-			wantKillspace: []rune(`ipsum `),
+			wantValue:     `lorem dolor`,
+			wantKillspace: `ipsum `,
 		},
 		{
-			comment: "unix-word-rubout cursor between multiple spaces",
+			comment: "cursor between multiple spaces",
 			e: Editor{
-				value:  []rune(`a b   c`),
+				value:  runes(`a b   c`),
 				cursor: 5,
 			},
-			wantValue:     []rune(`a  c`),
-			wantKillspace: []rune(`b  `),
+			wantValue:     `a  c`,
+			wantKillspace: `b  `,
 		},
 		{
-			comment: "unix-word-rubout tab as space char (although is it a realistic case in the context of a command line instruction?)",
+			comment: "at tab as space char (although is it a realistic case in the context of a command line instruction?)",
 			e: Editor{
-				value:  []rune(`a b		c`),
+				value:  runes(`a b		c`),
 				cursor: 5,
 			},
-			wantValue:     []rune(`a c`),
-			wantKillspace: []rune(`b		`),
+			wantValue:     `a c`,
+			wantKillspace: `b		`,
 		},
 	}
 
 	for _, tt := range tests {
 		tt.e.unixWordRubout()
-		if string(tt.e.value) != string(tt.wantValue) {
-			t.Errorf("%q: bad value\nwant: %q\nhave: %q", tt.comment, tt.wantValue, tt.e.value)
+		if string(tt.e.value) != tt.wantValue {
+			t.Errorf("%q: bad value\nwant: %q\nhave: %q", tt.comment, runes(tt.wantValue), tt.e.value)
 		}
-		if string(tt.e.killspace) != string(tt.wantKillspace) {
-			t.Errorf("%q: bad value in killspace\nwant: %q\nhave: %q", tt.comment, tt.wantKillspace, tt.e.value)
+		if string(tt.e.killspace) != tt.wantKillspace {
+			t.Errorf("%q: bad value in killspace\nwant: %q\nhave: %q", tt.comment, runes(tt.wantKillspace), tt.e.value)
 		}
 	}
 }
