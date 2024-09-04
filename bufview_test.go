@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"strings"
 	"testing"
 
@@ -166,4 +167,42 @@ func padLinesBelow(screen string, reg Region) string {
 		padding  = strings.Repeat(emptyRow, reg.H-n)
 	)
 	return screen + padding
+}
+
+func Test_tabExpander(t *testing.T) {
+	lines := func(s ...string) string { return strings.Join(s, "\n") }
+	tests := []struct {
+		in   string
+		want string
+	}{{
+		in:   `abc`,
+		want: `abc`,
+	}, {
+		in: lines(
+			"\ta\tb",
+			"\tc"),
+		want: lines(
+			"        a       b",
+			"        c"),
+	}, {
+		in:   "\t\ta\tb",
+		want: "                a       b",
+	}}
+
+	for _, tt := range tests {
+		r := tabExpander{r: bufio.NewReader(strings.NewReader(tt.in))}
+		out := []string{}
+		for {
+			ch, _, err := r.ReadRune()
+			if err != nil {
+				break
+			}
+			out = append(out, string(ch))
+		}
+		have := strings.Join(out, "")
+		if have != tt.want {
+			t.Errorf("bad output\nIN: %q\nHAVE: %q\nWANT: %q",
+				tt.in, have, tt.want)
+		}
+	}
 }

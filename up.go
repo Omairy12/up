@@ -1,4 +1,4 @@
-// Copyright 2018-2023 The up AUTHORS
+// Copyright 2018-2024 The up AUTHORS
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -35,6 +35,7 @@ import (
 	"github.com/gdamore/tcell"
 	"github.com/gdamore/tcell/terminfo"
 	"github.com/mattn/go-isatty"
+	"github.com/mattn/go-runewidth"
 	"github.com/spf13/pflag"
 )
 
@@ -874,5 +875,42 @@ var (
 func drawText(region Region, style tcell.Style, text string) {
 	for x, ch := range text {
 		region.SetCell(x, 0, style, ch)
+	}
+}
+
+type runeReader interface {
+	ReadRune() (r rune, size int, err error)
+}
+
+type tabExpander struct {
+	r runeReader
+	x int // if negative, represents amount of pending spaces left
+}
+
+var _ runeReader = (*tabExpander)(nil)
+
+func (t *tabExpander) ReadRune() (r rune, size int, err error) {
+	if t.x < 0 {
+		t.x++
+		return ' ', 1, nil
+	}
+
+	r, size, err = t.r.ReadRune()
+	if err != nil {
+		return 0, 0, err
+	}
+
+	const tabWidth = 8
+	switch r {
+	case '\n', '\r':
+		t.x = 0
+		return
+	case '\t':
+		t.x = t.x - tabWidth
+		return t.ReadRune()
+	default:
+		w := runewidth.RuneWidth(r)
+		t.x = (t.x + w) % tabWidth
+		return
 	}
 }
