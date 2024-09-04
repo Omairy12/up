@@ -11,65 +11,44 @@ func Test_Editor_insert(t *testing.T) {
 		wantValue string
 	}{
 		{
-			comment: "prepend ASCII char",
-			e: Editor{
-				value:  runes(`abc`),
-				cursor: 0,
-			},
+			comment:   "prepend ASCII char",
+			e:         edBetween(``, `abc`),
 			insert:    runes{'X'},
 			wantValue: `Xabc`,
 		},
 		{
-			comment: "prepend UTF char",
-			e: Editor{
-				value:  runes(`abc`),
-				cursor: 0,
-			},
+			comment:   "prepend UTF char",
+			e:         edBetween(``, `abc`),
 			insert:    runes{'☃'},
 			wantValue: `☃abc`,
 		},
 		{
-			comment: "insert ASCII char",
-			e: Editor{
-				value:  runes(`abc`),
-				cursor: 1,
-			},
+			comment:   "insert ASCII char",
+			e:         edBetween(`a`, `bc`),
 			insert:    runes{'X'},
 			wantValue: `aXbc`,
 		},
 		{
-			comment: "insert UTF char",
-			e: Editor{
-				value:  runes(`abc`),
-				cursor: 1,
-			},
+			comment:   "insert UTF char",
+			e:         edBetween(`a`, `bc`),
 			insert:    runes{'☃'},
 			wantValue: `a☃bc`,
 		},
 		{
-			comment: "append ASCII char",
-			e: Editor{
-				value:  runes(`abc`),
-				cursor: 3,
-			},
+			comment:   "append ASCII char",
+			e:         edBetween(`abc`, ``),
 			insert:    runes{'X'},
 			wantValue: `abcX`,
 		},
 		{
-			comment: "append UTF char",
-			e: Editor{
-				value:  runes(`abc`),
-				cursor: 3,
-			},
+			comment:   "append UTF char",
+			e:         edBetween(`abc`, ``),
 			insert:    runes{'☃'},
 			wantValue: `abc☃`,
 		},
 		{
-			comment: "insert 2 ASCII chars",
-			e: Editor{
-				value:  runes(`abc`),
-				cursor: 1,
-			},
+			comment:   "insert 2 ASCII chars",
+			e:         edBetween(`a`, `bc`),
 			insert:    runes{'X', 'Y'},
 			wantValue: `aXYbc`,
 		},
@@ -92,74 +71,50 @@ func Test_Editor_unix_word_rubout(t *testing.T) {
 		wantKillspace string
 	}{
 		{
-			comment: "at beginning of line",
-			e: Editor{
-				value:  runes(`abc`),
-				cursor: 0,
-			},
+			comment:       "at beginning of line",
+			e:             edBetween(``, `abc`),
 			wantValue:     `abc`,
 			wantKillspace: ``,
 		},
 		{
-			comment: "at soft beginning of line",
-			e: Editor{
-				value:  runes(` abc`),
-				cursor: 1,
-			},
+			comment:       "at soft beginning of line",
+			e:             edBetween(` `, `abc`),
 			wantValue:     `abc`,
 			wantKillspace: ` `,
 		},
 		{
-			comment: "until soft beginning of line",
-			e: Editor{
-				value:  runes(` abc`),
-				cursor: 2,
-			},
+			comment:       "until soft beginning of line",
+			e:             edBetween(` a`, `bc`),
 			wantValue:     ` bc`,
 			wantKillspace: `a`,
 		},
 		{
-			comment: "until beginning of line",
-			e: Editor{
-				value:  runes(`abc`),
-				cursor: 2,
-			},
+			comment:       "until beginning of line",
+			e:             edBetween(`ab`, `c`),
 			wantValue:     `c`,
 			wantKillspace: `ab`,
 		},
 		{
-			comment: "in middle of line",
-			e: Editor{
-				value:  runes(`lorem ipsum dolor`),
-				cursor: 11,
-			},
+			comment:       "in middle of line",
+			e:             edBetween(`lorem ipsum`, ` dolor`),
 			wantValue:     `lorem  dolor`,
 			wantKillspace: `ipsum`,
 		},
 		{
-			comment: "cursor at beginning of word",
-			e: Editor{
-				value:  runes(`lorem ipsum dolor`),
-				cursor: 12,
-			},
+			comment:       "cursor at beginning of word",
+			e:             edBetween(`lorem ipsum `, `dolor`),
 			wantValue:     `lorem dolor`,
 			wantKillspace: `ipsum `,
 		},
 		{
-			comment: "cursor between multiple spaces",
-			e: Editor{
-				value:  runes(`a b   c`),
-				cursor: 5,
-			},
+			comment:       "cursor between multiple spaces",
+			e:             edBetween(`a b  `, ` c`),
 			wantValue:     `a  c`,
 			wantKillspace: `b  `,
 		},
 		{
-			comment: "at tab as space char (although is it a realistic case in the context of a command line instruction?)",
-			e: Editor{
-				value:  runes(`a b		c`),
-				cursor: 5,
-			},
+			comment:       "at tab as space char (although is it a realistic case in the context of a command line instruction?)",
+			e:             edBetween(`a b		`, `c`),
 			wantValue:     `a c`,
 			wantKillspace: `b		`,
 		},
@@ -173,5 +128,12 @@ func Test_Editor_unix_word_rubout(t *testing.T) {
 		if string(tt.e.killspace) != tt.wantKillspace {
 			t.Errorf("%q: bad value in killspace\nwant: %q\nhave: %q", tt.comment, runes(tt.wantKillspace), tt.e.value)
 		}
+	}
+}
+
+func edBetween(beforeCursor, afterCursor string) Editor {
+	return Editor{
+		value:  []rune(beforeCursor + afterCursor),
+		cursor: len(beforeCursor),
 	}
 }
