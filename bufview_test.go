@@ -1,6 +1,7 @@
 package main
 
 import (
+	"strings"
 	"testing"
 
 	u "github.com/akavel/up/testutil"
@@ -15,10 +16,19 @@ func TestBufView_DrawTo(t *testing.T) {
 		want u.Screen
 	}{{
 		note: "long line trimmed on the right",
-		v:    newView(0, 0, `1234567890xyz`),
+		v:    newView(`1234567890xyz`),
 		want: u.Screen{
-			u.Raw("123456789"), u.Raw("»"), u.Endline{0},
-			u.Rows{W: 10, H: 9},
+			u.Raw("123456789»"), u.Endline{},
+		},
+	}, {
+		note: "long lines trimmed on left & right",
+		v: linesView(
+			"1234567890xyz",
+			"1234567890xyz").
+			scrolled(2, 0),
+		want: u.Screen{
+			u.Raw("«4567890x»"), u.Endline{},
+			u.Raw("«4567890x»"), u.Endline{},
 		},
 	}}
 
@@ -46,16 +56,35 @@ func TestBufView_DrawTo(t *testing.T) {
 
 		// Assert
 		have := u.CellsToString(sim)
-		want := tt.want.String()
+		want := padLinesBelow(tt.want.String(), reg)
 		if have != want {
 			t.Errorf("bad %q:\n%s", tt.note, diff.Diff(have, want))
 		}
 	}
 }
 
-func newView(x, y int, text string) BufView {
-	v := BufView{X: x, Y: y, Buf: NewBuf(1000)}
+func linesView(lines ...string) BufView {
+	return newView(strings.Join(lines, "\n"))
+}
+
+func newView(text string) BufView {
+	v := BufView{Buf: NewBuf(1000)}
 	v.Buf.bytes = []byte(text)
 	v.Buf.n = len(text)
 	return v
+}
+
+func (v BufView) scrolled(x, y int) BufView {
+	v.X = x
+	v.Y = y
+	return v
+}
+
+func padLinesBelow(screen string, reg Region) string {
+	var (
+		n        = strings.Count(screen, "\n")
+		emptyRow = strings.Repeat(" ", reg.W) + "\n"
+		padding  = strings.Repeat(emptyRow, reg.H-n)
+	)
+	return screen + padding
 }
