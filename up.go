@@ -511,8 +511,9 @@ func (v *BufView) DrawTo(region Region) {
 			continue
 		}
 		// Try to draw character if in RowView window
-		w := row.drawch(r.x, ch)
-		r.x += w
+		w := row.drawch(row.x, ch)
+		row.x += w
+		row.lastW = w
 	}
 	for ; y < region.H; y++ {
 		newRowView(v, y, region).EndLine()
@@ -667,7 +668,7 @@ type RowView struct {
 
 	x            int
 	overflowLeft bool
-	lastWOver1   int // lastW-1, to nicely init at 0
+	lastW        int
 }
 
 func newRowView(v *BufView, y int, region Region) *RowView {
@@ -676,20 +677,24 @@ func newRowView(v *BufView, y int, region Region) *RowView {
 		PutCh: func(x int, ch rune) {
 			region.SetCell(x, y, tcell.StyleDefault, ch)
 		},
-		x:            -v.X,
-		overflowLeft: v.X > 0,
+		x:     -v.X,
+		lastW: 1,
 	}
 }
 
 func (r *RowView) drawch(x int, ch rune) (w int) {
 	w = max(runewidth.RuneWidth(ch), 1)
 	switch {
-	case x < 0 && x+w > 0:
+	case r.overflowLeft && x <= 0 && x+w > 0:
 		r.fill(0, '«', x+w)
 		return
 	case x < 0:
+		r.overflowLeft = true
 		return
-	case x+w > r.W:
+	case x == r.W:
+		r.fill(x-r.lastW, '»', r.lastW)
+		return
+	case x < r.W && x+w > r.W:
 		r.fill(x, '»', r.W-x)
 		return
 	}
@@ -706,9 +711,11 @@ func (r *RowView) EndLine() {
 	r.fill(xStart, ' ', r.W-xStart)
 }
 
-func (r *RowView) fill(x0 int, ch rune, w int) {
+func (r *RowView) fill(x0 int, ch byte, w int) {
 	for w > 0 {
-		r.drawch(x0, ch)
+		if x0 >= 0 && x0 < r.W {
+			r.PutCh(x0, rune(ch))
+		}
 		w--
 		x0++
 	}
