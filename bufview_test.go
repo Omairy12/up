@@ -189,6 +189,12 @@ func Test_tabExpander(t *testing.T) {
 	}, {
 		in:   "\t\ta\tb",
 		want: "                a       b",
+	}, {
+		in:   "abc\ndef",
+		want: "abc\ndef",
+	}, {
+		in:   "abc\ndef\n",
+		want: "abc\ndef\n",
 	}}
 
 	for _, tt := range tests {

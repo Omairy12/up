@@ -499,7 +499,11 @@ func (v *BufView) DrawTo(region Region) {
 	row := newRowView(v, y, region)
 	for {
 		ch, _, err := r.ReadRune()
-		if y >= region.H || err == io.EOF {
+		if y >= region.H {
+			break
+		} else if err == io.EOF {
+			row.EndLine()
+			y++
 			break
 		} else if err != nil {
 			panic(err)
