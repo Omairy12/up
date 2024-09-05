@@ -476,36 +476,71 @@ type BufView struct {
 }
 
 func (v *BufView) DrawTo(region Region) {
-	r := bufio.NewReader(v.Buf.NewReader(false))
+	bufr := bufio.NewReader(v.Buf.NewReader(false))
 
 	// PgDn/PgUp etc. support
 	for y := v.Y; y > 0; y-- {
-		line, err := r.ReadBytes('\n')
+		line, err := bufr.ReadBytes('\n')
 		switch err {
 		case nil:
 			// skip line
 			continue
 		case io.EOF:
-			r = bufio.NewReader(bytes.NewReader(line))
+			bufr = bufio.NewReader(bytes.NewReader(line))
 			y = 0
 			break
 		default:
 			panic(err)
 		}
 	}
+	r := tabExpander{r: bufr}
 
 	lclip := false
-	drawch := func(x, y int, ch rune) {
-		if x <= v.X && v.X != 0 {
-			x, ch = 0, '«'
-			lclip = true
-		} else {
-			x -= v.X
-		}
-		if x >= region.W {
-			x, ch = region.W-1, '»'
+	drawch := func(x, y int, ch rune) (w int) {
+		w = max(runewidth.RuneWidth(ch), 1)
+		x -= v.X
+		switch {
+		case x < 0:
+			return
+		case x+w > region.W:
+			return
 		}
 		region.SetCell(x, y, tcell.StyleDefault, ch)
+		return
+	}
+	drawFiller := func(x, y int, filler rune, n int) {
+		for n > 0 && x < v.X+region.W {
+			drawch(x, y, filler)
+			n--
+			x++
+		}
+	}
+	drawLClip := func(x, y int, w int) {
+		if v.X == 0 {
+			return
+		}
+		xv := x - v.X
+		switch {
+		case lclip && xv+w <= 0:
+			return
+		case !lclip && xv+w <= 0:
+			xv, w = 0, 1
+			fallthrough
+		case lclip && xv == 0:
+			fallthrough
+		case xv < 0 && xv+w > 0:
+			lclip = true
+			drawFiller(v.X, y, '«', xv+w)
+		}
+	}
+	drawRClip := func(x, y int, w, lastw int) {
+		xv := x - v.X
+		switch {
+		case xv == region.W:
+			drawFiller(x-lastw, y, '»', lastw)
+		case xv < region.W && xv+w > region.W:
+			drawFiller(x, y, '»', region.W-xv)
+		}
 	}
 	endline := func(x, y int) {
 		x = max(0, x-v.X)
@@ -519,7 +554,7 @@ func (v *BufView) DrawTo(region Region) {
 	}
 
 	x, y := 0, 0
-	// TODO: handle runes properly, including their visual width (mattn/go-runewidth)
+	lastw := 1
 	for {
 		ch, _, err := r.ReadRune()
 		if y >= region.H || err == io.EOF {
@@ -531,21 +566,15 @@ func (v *BufView) DrawTo(region Region) {
 		case '\n':
 			endline(x, y)
 			x, y = 0, y+1
+			lastw = 1
 			continue
-		case '\t':
-			const tabwidth = 8
-			drawch(x, y, ' ')
-			for x%tabwidth < (tabwidth - 1) {
-				x++
-				if x >= region.W {
-					break
-				}
-				drawch(x, y, ' ')
-			}
 		default:
-			drawch(x, y, ch)
+			w := drawch(x, y, ch)
+			drawLClip(x, y, w)
+			drawRClip(x, y, w, lastw)
+			x += w
+			lastw = w
 		}
-		x++
 	}
 	for ; y < region.H; y++ {
 		endline(x, y)

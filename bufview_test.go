@@ -39,7 +39,7 @@ func TestBufView_DrawTo(t *testing.T) {
 			u.Raw("«456789_1»"), EOL,
 			u.Raw("««56789_1»"), EOL,
 			u.Raw("«456789_1»"), EOL,
-			u.Raw("«"), W2('茶'), u.Raw("67890_1»"), EOL,
+			u.Raw("«"), W2('茶'), u.Raw("6789_1»"), EOL,
 		},
 	}, {
 		note: "issue #51 Chinese characters",
@@ -103,12 +103,14 @@ func TestBufView_DrawTo(t *testing.T) {
 		v: linesView(
 			"\tA",
 			"1\tB",
-			"1234567\tC").
+			"1234567\tC",
+			"喝\tD").
 			scrolled(3, 0),
 		want: u.Screen{
 			u.Raw("«    A"), PadEOL{4},
 			u.Raw("«    B"), PadEOL{4},
 			u.Raw("«567 C"), PadEOL{4},
+			u.Raw("«    D"), PadEOL{4},
 		},
 	}}
 
