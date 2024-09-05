@@ -522,94 +522,6 @@ func (v *BufView) DrawTo(region Region) {
 	for ; y < region.H; y++ {
 		newRowView(v, y, region).EndLine()
 	}
-
-	// ------------------------------
-	/*
-
-		lclip := false
-		drawch := func(x, y int, ch rune) (w int) {
-			w = max(runewidth.RuneWidth(ch), 1)
-			x -= v.X
-			switch {
-			case x < 0:
-				return
-			case x+w > region.W:
-				return
-			}
-			region.SetCell(x, y, tcell.StyleDefault, ch)
-			return
-		}
-		drawFiller := func(x, y int, filler rune, n int) {
-			for n > 0 && x < v.X+region.W {
-				drawch(x, y, filler)
-				n--
-				x++
-			}
-		}
-		drawLClip := func(x, y int, w int) {
-			if v.X == 0 {
-				return
-			}
-			xv := x - v.X
-			switch {
-			case lclip && xv+w <= 0:
-				return
-			case !lclip && xv+w <= 0:
-				xv, w = 0, 1
-				fallthrough
-			case lclip && xv == 0:
-				fallthrough
-			case xv < 0 && xv+w > 0:
-				lclip = true
-				drawFiller(v.X, y, '«', xv+w)
-			}
-		}
-		drawRClip := func(x, y int, w, lastw int) {
-			xv := x - v.X
-			switch {
-			case xv == region.W:
-				drawFiller(x-lastw, y, '»', lastw)
-			case xv < region.W && xv+w > region.W:
-				drawFiller(x, y, '»', region.W-xv)
-			}
-		}
-		endline := func(x, y int) {
-			xv := max(0, x-v.X)
-			if xv == 0 && lclip {
-				xv++
-			}
-			lclip = false
-			drawFiller(xv+v.X, y, ' ', region.W-x)
-		}
-
-		x, y := 0, 0
-		lastw := 1
-		for {
-			ch, _, err := r.ReadRune()
-			if y >= region.H || err == io.EOF {
-				break
-			} else if err != nil {
-				panic(err)
-			}
-			switch ch {
-			case '\n':
-				endline(x, y)
-				x, y = 0, y+1
-				lastw = 1
-				continue
-			default:
-				w := drawch(x, y, ch)
-				drawLClip(x, y, w)
-				drawRClip(x, y, w, lastw)
-				x += w
-				lastw = w
-			}
-		}
-		for ; y < region.H; y++ {
-			endline(x, y)
-			x = 0
-		}
-	*/
 }
 
 func (v *BufView) HandleKey(ev *tcell.EventKey, scrollY int) bool {
@@ -689,7 +601,7 @@ func newRowView(v *BufView, y int, region Region) *RowView {
 func (r *RowView) drawch(x int, ch rune) (w int) {
 	w = max(runewidth.RuneWidth(ch), 1)
 	switch {
-	case r.overflowLeft && x <= 0 && x+w > 0:
+	case r.overflowLeft && x == 0, x < 0 && x+w > 0:
 		r.fill(0, '«', x+w)
 		return
 	case x < 0:
