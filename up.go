@@ -514,10 +514,7 @@ func (v *BufView) DrawTo(region Region) {
 			row = newRowView(v, y, region)
 			continue
 		}
-		// Try to draw character if in RowView window
-		w := row.drawch(row.x, ch)
-		row.x += w
-		row.lastW = w
+		row.PrintCh(ch)
 	}
 	for ; y < region.H; y++ {
 		newRowView(v, y, region).EndLine()
@@ -579,58 +576,56 @@ func count(r io.Reader, b byte) (n int) {
 }
 
 type RowView struct {
-	W     int
-	PutCh func(x int, ch rune)
+	w     int
+	putch func(x int, ch rune)
 
 	x            int
 	overflowLeft bool
-	lastW        int
+	lastRuneW    int
 }
 
 func newRowView(v *BufView, y int, region Region) *RowView {
 	return &RowView{
-		W: region.W,
-		PutCh: func(x int, ch rune) {
+		w: region.W,
+		putch: func(x int, ch rune) {
 			region.SetCell(x, y, tcell.StyleDefault, ch)
 		},
-		x:     -v.X,
-		lastW: 1,
+		x:         -v.X,
+		lastRuneW: 1,
 	}
 }
 
-func (r *RowView) drawch(x int, ch rune) (w int) {
-	w = max(runewidth.RuneWidth(ch), 1)
+func (r *RowView) PrintCh(ch rune) {
+	w := max(runewidth.RuneWidth(ch), 1)
 	switch {
-	case r.overflowLeft && x == 0, x < 0 && x+w > 0:
-		r.fill(0, '«', x+w)
-		return
-	case x < 0:
+	case r.overflowLeft && r.x == 0, r.x < 0 && r.x+w > 0:
+		r.fill(0, '«', r.x+w)
+	case r.x < 0:
 		r.overflowLeft = true
-		return
-	case x == r.W:
-		r.fill(x-r.lastW, '»', r.lastW)
-		return
-	case x < r.W && x+w > r.W:
-		r.fill(x, '»', r.W-x)
-		return
+	case r.x == r.w:
+		r.fill(r.x-r.lastRuneW, '»', r.lastRuneW)
+	case r.x < r.w && r.x+w > r.w:
+		r.fill(r.x, '»', r.w-r.x)
+	default:
+		r.putch(r.x, ch)
 	}
-	r.PutCh(x, ch)
-	return
+	r.x += w
+	r.lastRuneW = w
 }
 
 func (r *RowView) EndLine() {
 	xStart := max(0, r.x)
 	if xStart == 0 && r.overflowLeft {
-		r.PutCh(0, '«')
+		r.putch(0, '«')
 		xStart++
 	}
-	r.fill(xStart, ' ', r.W-xStart)
+	r.fill(xStart, ' ', r.w-xStart)
 }
 
 func (r *RowView) fill(x0 int, ch byte, w int) {
 	for w > 0 {
-		if x0 >= 0 && x0 < r.W {
-			r.PutCh(x0, rune(ch))
+		if x0 >= 0 && x0 < r.w {
+			r.putch(x0, rune(ch))
 		}
 		w--
 		x0++
