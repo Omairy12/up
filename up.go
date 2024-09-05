@@ -496,17 +496,8 @@ func (v *BufView) DrawTo(region Region) {
 	r := tabExpander{r: bufr}
 
 	y := 0
-	var row *RowView
+	row := newRowView(v, y, region)
 	for {
-		if row == nil {
-			row = RowView{
-				W: v.W,
-				PutCh: func(x int, ch rune) {
-					region.SetCell(x, y, tcell.StyleDefault, ch)
-				},
-			}
-		}
-
 		ch, _, err := r.ReadRune()
 		if y >= region.H || err == io.EOF {
 			break
@@ -515,97 +506,105 @@ func (v *BufView) DrawTo(region Region) {
 		}
 		if ch == '\n' {
 			row.EndLine()
-			row = nil
 			y++
+			row = newRowView(v, y, region)
 			continue
 		}
+		// Try to draw character if in RowView window
+		w := row.drawch(r.x, ch)
+		r.x += w
+	}
+	for ; y < region.H; y++ {
+		newRowView(v, y, region).EndLine()
 	}
 
 	// ------------------------------
+	/*
 
-	lclip := false
-	drawch := func(x, y int, ch rune) (w int) {
-		w = max(runewidth.RuneWidth(ch), 1)
-		x -= v.X
-		switch {
-		case x < 0:
-			return
-		case x+w > region.W:
-			return
-		}
-		region.SetCell(x, y, tcell.StyleDefault, ch)
-		return
-	}
-	drawFiller := func(x, y int, filler rune, n int) {
-		for n > 0 && x < v.X+region.W {
-			drawch(x, y, filler)
-			n--
-			x++
-		}
-	}
-	drawLClip := func(x, y int, w int) {
-		if v.X == 0 {
+		lclip := false
+		drawch := func(x, y int, ch rune) (w int) {
+			w = max(runewidth.RuneWidth(ch), 1)
+			x -= v.X
+			switch {
+			case x < 0:
+				return
+			case x+w > region.W:
+				return
+			}
+			region.SetCell(x, y, tcell.StyleDefault, ch)
 			return
 		}
-		xv := x - v.X
-		switch {
-		case lclip && xv+w <= 0:
-			return
-		case !lclip && xv+w <= 0:
-			xv, w = 0, 1
-			fallthrough
-		case lclip && xv == 0:
-			fallthrough
-		case xv < 0 && xv+w > 0:
-			lclip = true
-			drawFiller(v.X, y, '«', xv+w)
+		drawFiller := func(x, y int, filler rune, n int) {
+			for n > 0 && x < v.X+region.W {
+				drawch(x, y, filler)
+				n--
+				x++
+			}
 		}
-	}
-	drawRClip := func(x, y int, w, lastw int) {
-		xv := x - v.X
-		switch {
-		case xv == region.W:
-			drawFiller(x-lastw, y, '»', lastw)
-		case xv < region.W && xv+w > region.W:
-			drawFiller(x, y, '»', region.W-xv)
+		drawLClip := func(x, y int, w int) {
+			if v.X == 0 {
+				return
+			}
+			xv := x - v.X
+			switch {
+			case lclip && xv+w <= 0:
+				return
+			case !lclip && xv+w <= 0:
+				xv, w = 0, 1
+				fallthrough
+			case lclip && xv == 0:
+				fallthrough
+			case xv < 0 && xv+w > 0:
+				lclip = true
+				drawFiller(v.X, y, '«', xv+w)
+			}
 		}
-	}
-	endline := func(x, y int) {
-		xv := max(0, x-v.X)
-		if xv == 0 && lclip {
-			xv++
+		drawRClip := func(x, y int, w, lastw int) {
+			xv := x - v.X
+			switch {
+			case xv == region.W:
+				drawFiller(x-lastw, y, '»', lastw)
+			case xv < region.W && xv+w > region.W:
+				drawFiller(x, y, '»', region.W-xv)
+			}
 		}
-		lclip = false
-		drawFiller(xv+v.X, y, ' ', region.W-x)
-	}
+		endline := func(x, y int) {
+			xv := max(0, x-v.X)
+			if xv == 0 && lclip {
+				xv++
+			}
+			lclip = false
+			drawFiller(xv+v.X, y, ' ', region.W-x)
+		}
 
-	x, y := 0, 0
-	lastw := 1
-	for {
-		ch, _, err := r.ReadRune()
-		if y >= region.H || err == io.EOF {
-			break
-		} else if err != nil {
-			panic(err)
+		x, y := 0, 0
+		lastw := 1
+		for {
+			ch, _, err := r.ReadRune()
+			if y >= region.H || err == io.EOF {
+				break
+			} else if err != nil {
+				panic(err)
+			}
+			switch ch {
+			case '\n':
+				endline(x, y)
+				x, y = 0, y+1
+				lastw = 1
+				continue
+			default:
+				w := drawch(x, y, ch)
+				drawLClip(x, y, w)
+				drawRClip(x, y, w, lastw)
+				x += w
+				lastw = w
+			}
 		}
-		switch ch {
-		case '\n':
+		for ; y < region.H; y++ {
 			endline(x, y)
-			x, y = 0, y+1
-			lastw = 1
-			continue
-		default:
-			w := drawch(x, y, ch)
-			drawLClip(x, y, w)
-			drawRClip(x, y, w, lastw)
-			x += w
-			lastw = w
+			x = 0
 		}
-	}
-	for ; y < region.H; y++ {
-		endline(x, y)
-		x = 0
-	}
+	*/
 }
 
 func (v *BufView) HandleKey(ev *tcell.EventKey, scrollY int) bool {
@@ -671,21 +670,37 @@ type RowView struct {
 	lastWOver1   int // lastW-1, to nicely init at 0
 }
 
-func (r *RowView) drawch(ch rune) (w int) {
+func newRowView(v *BufView, y int, region Region) *RowView {
+	return &RowView{
+		W: region.W,
+		PutCh: func(x int, ch rune) {
+			region.SetCell(x, y, tcell.StyleDefault, ch)
+		},
+		x:            -v.X,
+		overflowLeft: v.X > 0,
+	}
+}
+
+func (r *RowView) drawch(x int, ch rune) (w int) {
 	w = max(runewidth.RuneWidth(ch), 1)
 	switch {
-	case r.x < 0:
+	case x < 0 && x+w > 0:
+		r.fill(0, '«', x+w)
 		return
-	case r.x+w > r.W:
+	case x < 0:
+		return
+	case x+w > r.W:
+		r.fill(x, '»', r.W-x)
 		return
 	}
-	r.PutCh(r.x, ch)
+	r.PutCh(x, ch)
 	return
 }
 
 func (r *RowView) EndLine() {
 	xStart := max(0, r.x)
 	if xStart == 0 && r.overflowLeft {
+		r.PutCh(0, '«')
 		xStart++
 	}
 	r.fill(xStart, ' ', r.W-xStart)
