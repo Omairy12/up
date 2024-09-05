@@ -495,6 +495,34 @@ func (v *BufView) DrawTo(region Region) {
 	}
 	r := tabExpander{r: bufr}
 
+	y := 0
+	var row *RowView
+	for {
+		if row == nil {
+			row = RowView{
+				W: v.W,
+				PutCh: func(x int, ch rune) {
+					region.SetCell(x, y, tcell.StyleDefault, ch)
+				},
+			}
+		}
+
+		ch, _, err := r.ReadRune()
+		if y >= region.H || err == io.EOF {
+			break
+		} else if err != nil {
+			panic(err)
+		}
+		if ch == '\n' {
+			row.EndLine()
+			row = nil
+			y++
+			continue
+		}
+	}
+
+	// ------------------------------
+
 	lclip := false
 	drawch := func(x, y int, ch rune) (w int) {
 		w = max(runewidth.RuneWidth(ch), 1)
@@ -631,6 +659,43 @@ func count(r io.Reader, b byte) (n int) {
 		if err != nil {
 			return
 		}
+	}
+}
+
+type RowView struct {
+	W     int
+	PutCh func(x int, ch rune)
+
+	x            int
+	overflowLeft bool
+	lastWOver1   int // lastW-1, to nicely init at 0
+}
+
+func (r *RowView) drawch(ch rune) (w int) {
+	w = max(runewidth.RuneWidth(ch), 1)
+	switch {
+	case r.x < 0:
+		return
+	case r.x+w > r.W:
+		return
+	}
+	r.PutCh(r.x, ch)
+	return
+}
+
+func (r *RowView) EndLine() {
+	xStart := max(0, r.x)
+	if xStart == 0 && r.overflowLeft {
+		xStart++
+	}
+	r.fill(xStart, ' ', r.W-xStart)
+}
+
+func (r *RowView) fill(x0 int, ch rune, w int) {
+	for w > 0 {
+		r.drawch(x0, ch)
+		w--
+		x0++
 	}
 }
 
