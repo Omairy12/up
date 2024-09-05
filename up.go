@@ -543,14 +543,12 @@ func (v *BufView) DrawTo(region Region) {
 		}
 	}
 	endline := func(x, y int) {
-		x = max(0, x-v.X)
-		if x == 0 && lclip {
-			x++
+		xv := max(0, x-v.X)
+		if xv == 0 && lclip {
+			xv++
 		}
 		lclip = false
-		for ; x < region.W; x++ {
-			region.SetCell(x, y, tcell.StyleDefault, ' ')
-		}
+		drawFiller(xv+v.X, y, ' ', region.W-x)
 	}
 
 	x, y := 0, 0
