@@ -112,6 +112,21 @@ func TestBufView_DrawTo(t *testing.T) {
 			u.Raw("«567 C"), PadEOL{4},
 			u.Raw("«    D"), PadEOL{4},
 		},
+	}, {
+		note: "more lines than screen height",
+		v:    newView("1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12"),
+		want: u.Screen{
+			u.Raw("1"), PadEOL{9},
+			u.Raw("2"), PadEOL{9},
+			u.Raw("3"), PadEOL{9},
+			u.Raw("4"), PadEOL{9},
+			u.Raw("5"), PadEOL{9},
+			u.Raw("6"), PadEOL{9},
+			u.Raw("7"), PadEOL{9},
+			u.Raw("8"), PadEOL{9},
+			u.Raw("9"), PadEOL{9},
+			u.Raw("10"), PadEOL{8},
+		},
 	}}
 
 	// Initialize simulated tcell.Screen
